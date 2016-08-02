@@ -37,7 +37,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         """
         LOG.debug("PowerPCHardwareManager.evaluate_hardware_support:")
 
-        return SERVICE_PROVIDER
+        return hardware.HardwareSupport.SERVICE_PROVIDER
 
     def get_memory(self):
         LOG.debug("PowerPCHardwareManager.get_memory:")
