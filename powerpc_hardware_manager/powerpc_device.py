@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from oslo_log import log
+from ironic_python_agent import hardware
 
 LOG = log.getLogger()
 
