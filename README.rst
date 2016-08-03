@@ -42,10 +42,21 @@ From git://git.openstack.org/openstack/ironic-python-agent
 Add in the PowerPC Hardware Manager
 -----------------------------------
 
+First, add a source repository line to get the git project installed inside of the boot image.
+
 ubuntu@hamzy-baby-utopic:~/diskimage-builder.git.hm$ echo "ironic-agent git /usr/share/ipa-powerpc-hardware-manager /home/ubuntu/powerpc-hardware-manager" >> ./elements/ironic-agent/source-repository-ironic-agent
+
+Then run the installation command. Note, you actually have to install it inside of the virtual python environment inside of the boot image.  Sigh.
+
 ubuntu@hamzy-baby-utopic:~/diskimage-builder.git.hm$ vi ./elements/ironic-agent/install.d/ironic-agent-source-install/60-ironic-agent-install
 ...
-(cd /usr/share/ipa-powerpc-hardware-manager/; sudo python setup.py install)
+(
+# Fix: /usr/share/ironic-python-agent/venv/bin/activate: line 57: PS1: unbound variable
+export VIRTUAL_ENV_DISABLE_PROMPT=1
+source $IPADIR/venv/bin/activate
+cd /usr/share/ipa-powerpc-hardware-manager/
+python setup.py install
+)
 ...
 
 Install diskimage-builder
