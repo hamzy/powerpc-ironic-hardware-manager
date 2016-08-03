@@ -15,8 +15,9 @@
 from oslo_log import log
 
 from ironic_python_agent import hardware
-from ironic_python_agent import Memory
 from ironic_python_agent import utils
+
+from ironic_python_agent.hardware import Memory
 
 LOG = log.getLogger()
 
