@@ -43,6 +43,25 @@ class PowerPCHardwareManager(hardware.HardwareManager):
 
         return hardware.HardwareSupport.SERVICE_PROVIDER
 
+    def list_hardware_info(self):
+        """Return full hardware inventory as a serializable dict.
+
+        This inventory is sent to Ironic on lookup and to Inspector on
+        inspection.
+
+        :return: a dictionary representing inventory
+        """
+        hardware_info = {}
+#       hardware_info['interfaces'] = self.list_network_interfaces()
+#       hardware_info['cpu'] = self.get_cpus()
+#       hardware_info['disks'] = self.list_block_devices()
+        hardware_info['memory'] = self.get_memory()
+#       hardware_info['bmc_address'] = self.get_bmc_address()
+#       hardware_info['system_vendor'] = self.get_system_vendor_info()
+#       hardware_info['boot'] = self.get_boot_info()
+#       return hardware_info
+        return None
+
     def get_memory(self):
         try:
             out, _ = utils.execute("lshw -c memory -short -quiet 2>/dev/null | grep -i 'system memory'",
