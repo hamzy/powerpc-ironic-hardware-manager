@@ -13,7 +13,10 @@
 # limitations under the License.
 
 from oslo_log import log
+
 from ironic_python_agent import hardware
+from ironic_python_agent import Memory
+from ironic_python_agent import utils
 
 LOG = log.getLogger()
 
@@ -40,7 +43,36 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         return hardware.HardwareSupport.SERVICE_PROVIDER
 
     def get_memory(self):
-        LOG.debug("PowerPCHardwareManager.get_memory:")
+        try:
+            out, _ = utils.execute("lshw -c memory -short -quiet 2>/dev/null | grep -i 'system memory'",
+                                   shell=True)
+
+            lines = out.split('\n')
+
+            # We only expect one line back!
+            if len(lines) != 1:
+                LOG.warning("PowerPCHardwareManager.get_memory: lines = \'%s\'", lines)
+                return None
+
+            # /0/5                           memory     8165MiB System memory
+            # /0/1                         memory     255GiB System memory
+            (_, _, memory, _, _) = lines[0].split()
+
+            if memory.endswith('GiB)':
+                 physical_mb = int(memory[0:-3])*1024
+            elif memory.endswith('MiB)':
+                 physical_mb = int(memory[0:-3])
+            else:
+                physical_mb = 0
+                LOG.warning("PowerPCHardwareManager.get_memory: %s bad memory", memory)
+                LOG.warning("PowerPCHardwareManager.get_memory: lines = \'%s\'", lines)
+
+            if physical_mb > 0:
+                LOG.debug("PowerPCHardwareManager.get_memory: physical_mb = ", physical_mb)
+
+                return hardware.Memory(total=physical_mb, physical_mb=physical_mb)
+        except (processutils.ProcessExecutionError, OSError) as e:
+            LOG.warning("Cannot execute lshw -c momeory -short -quiet: %s", e)
 
         return None
 
