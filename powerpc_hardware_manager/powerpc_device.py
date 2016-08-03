@@ -58,9 +58,9 @@ class PowerPCHardwareManager(hardware.HardwareManager):
             # /0/1                         memory     255GiB System memory
             (_, _, memory, _, _) = lines[0].split()
 
-            if memory.endswith('GiB)':
+            if memory.endswith('GiB'):
                  physical_mb = int(memory[0:-3])*1024
-            elif memory.endswith('MiB)':
+            elif memory.endswith('MiB'):
                  physical_mb = int(memory[0:-3])
             else:
                 physical_mb = 0
