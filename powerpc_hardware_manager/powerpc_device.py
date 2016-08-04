@@ -25,6 +25,7 @@ from ironic_python_agent import hardware
 from ironic_python_agent import utils
 
 from ironic_python_agent.hardware import BlockDevice
+from ironic_python_agent.hardware import BootInfo
 from ironic_python_agent.hardware import CPU
 from ironic_python_agent.hardware import Memory
 from ironic_python_agent.hardware import SystemVendorInfo
@@ -113,12 +114,12 @@ def list_all_block_devices(block_type='disk'):
                       ('wwn_with_extension', 'WWN_WITH_EXTENSION'),
                       ('wwn_vendor_extension', 'WWN_VENDOR_EXTENSION')]}
 
-        devices.append(hardware.BlockDevice(name=name,
-                                            model=device['MODEL'],
-                                            size=int(device['SIZE']),
-                                            rotational=bool(int(device['ROTA'])),
-                                            vendor=_get_device_vendor(device['KNAME']),
-                                            **extra))
+        devices.append(BlockDevice(name=name,
+                                   model=device['MODEL'],
+                                   size=int(device['SIZE']),
+                                   rotational=bool(int(device['ROTA'])),
+                                   vendor=_get_device_vendor(device['KNAME']),
+                                   **extra))
     return devices
 
 class PowerPCHardwareManager(hardware.HardwareManager):
@@ -158,7 +159,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         hardware_info['memory'] = self.get_memory()
         hardware_info['bmc_address'] = self.get_bmc_address()
         hardware_info['system_vendor'] = self.get_system_vendor_info()
-#       hardware_info['boot'] = self.get_boot_info()
+        hardware_info['boot'] = self.get_boot_info()
         return hardware_info
 
     def get_cpus(self):
@@ -187,18 +188,18 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         count = int(cpu_info.get('cpu(s)'))
         architecture = cpu_info.get('architecture')
 
-        LOG.debug("PowerPCHardwareManager.get_cpus: model_name = ", model_name)
-        LOG.debug("PowerPCHardwareManager.get_cpus: frequency = ", frequency)
-        LOG.debug("PowerPCHardwareManager.get_cpus: count = ", count)
-        LOG.debug("PowerPCHardwareManager.get_cpus: architecturecount = ", architecture)
-        LOG.debug("PowerPCHardwareManager.get_cpus: flags = ", flags)
+        LOG.debug("PowerPCHardwareManager.get_cpus: model_name = %s", model_name)
+        LOG.debug("PowerPCHardwareManager.get_cpus: frequency = %s", frequency)
+        LOG.debug("PowerPCHardwareManager.get_cpus: count = %s", count)
+        LOG.debug("PowerPCHardwareManager.get_cpus: architecturecount = %s", architecture)
+        LOG.debug("PowerPCHardwareManager.get_cpus: flags = %s", flags)
 
-        return hardware.CPU(model_name=model_name,
-                            frequency=frequency,
-                            # this includes hyperthreading cores
-                            count=count,
-                            architecture=architecture,
-                            flags=flags)
+        return CPU(model_name=model_name,
+                   frequency=frequency,
+                   # this includes hyperthreading cores
+                   count=count,
+                   architecture=architecture,
+                   flags=flags)
 
     def list_block_devices(self):
         return list_all_block_devices()
@@ -227,9 +228,9 @@ class PowerPCHardwareManager(hardware.HardwareManager):
                     LOG.warning("PowerPCHardwareManager.get_memory: %s bad memory", memory)
                     LOG.warning("PowerPCHardwareManager.get_memory: line = \'%s\'", line)
 
-            LOG.debug("PowerPCHardwareManager.get_memory: physical_mb = ", physical_mb)
+            LOG.debug("PowerPCHardwareManager.get_memory: physical_mb = %s", physical_mb)
 
-            return hardware.Memory(total=physical_mb, physical_mb=physical_mb)
+            return Memory(total=physical_mb, physical_mb=physical_mb)
         except (processutils.ProcessExecutionError, OSError) as e:
             LOG.warning("Cannot execute lshw -c momeory -short -quiet: %s", e)
 
@@ -271,13 +272,20 @@ class PowerPCHardwareManager(hardware.HardwareManager):
                 elif line_arr[0].strip() == 'serial':
                     serial_number = line_arr[1].strip()
 
-        LOG.debug ("PowerPCHardwareManager.get_system_vendor_info: product_name = ", product_name)
-        LOG.debug ("PowerPCHardwareManager.get_system_vendor_info: serial_number = ", serial_number)
-        LOG.debug ("PowerPCHardwareManager.get_system_vendor_info: manufacturer = ", manufacturer)
+        LOG.debug ("PowerPCHardwareManager.get_system_vendor_info: product_name = %s", product_name)
+        LOG.debug ("PowerPCHardwareManager.get_system_vendor_info: serial_number = %s", serial_number)
+        LOG.debug ("PowerPCHardwareManager.get_system_vendor_info: manufacturer = %s", manufacturer)
 
         return SystemVendorInfo(product_name=product_name,
                                 serial_number=serial_number,
                                 manufacturer=manufacturer)
+
+    def get_boot_info(self):
+        boot_mode = 'uefi' if os.path.isdir('/sys/firmware/efi') else 'bios'
+        LOG.debug("PowerPCHardwareManager.get_boot_info: The current boot mode is %s", boot_mode)
+        pxe_interface = utils.get_agent_params().get('BOOTIF')
+        return BootInfo(current_boot_mode=boot_mode,
+                        pxe_interface=pxe_interface)
 
     def get_clean_steps(self, node, ports):
         """Get a list of clean steps with priority.
