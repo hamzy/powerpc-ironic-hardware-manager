@@ -175,6 +175,8 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         return [self._get_interface_info(name) for name in iface_names]
 
     def get_cpus(self):
+        func = "PowerPCHardwareManager.get_cpus"
+
         lines = utils.execute('lscpu')[0]
         cpu_info = {k.strip().lower(): v.strip() for k, v in
                     (line.split(':', 1)
@@ -200,11 +202,11 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         count = int(cpu_info.get('cpu(s)'))
         architecture = cpu_info.get('architecture')
 
-        LOG.debug("PowerPCHardwareManager.get_cpus: model_name = %s", model_name)
-        LOG.debug("PowerPCHardwareManager.get_cpus: frequency = %s", frequency)
-        LOG.debug("PowerPCHardwareManager.get_cpus: count = %s", count)
-        LOG.debug("PowerPCHardwareManager.get_cpus: architecturecount = %s", architecture)
-        LOG.debug("PowerPCHardwareManager.get_cpus: flags = %s", flags)
+        LOG.debug("%s: model_name = %s", func, model_name)
+        LOG.debug("%s: frequency = %s", func, frequency)
+        LOG.debug("%s: count = %s", func, count)
+        LOG.debug("%s: architecturecount = %s", func, architecture)
+        LOG.debug("%s: flags = %s", func, flags)
 
         return CPU(model_name=model_name,
                    frequency=frequency,
@@ -217,10 +219,12 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         return list_all_block_devices()
 
     def get_memory(self):
+        func = "PowerPCHardwareManager.get_memory"
+        cmd = ("lshw -c memory -short -quiet 2>/dev/null"
+               "|grep -i 'system memory'")
+
         try:
-            out, _ = utils.execute("lshw -c memory -short -quiet 2>/dev/null"
-                                   "|grep -i 'system memory'",
-                                   shell=True)
+            out, _ = utils.execute(cmd, shell=True)
 
             physical_mb = 0
 
@@ -230,12 +234,11 @@ class PowerPCHardwareManager(hardware.HardwareManager):
                     continue
 
                 try:
-                    # /0/5                           memory     8165MiB System memory
-                    # /0/1                         memory     255GiB System memory
+                    # /0/5                   memory     8165MiB System memory
+                    # /0/1                 memory     255GiB System memory
                     (_, _, memory, _, _) = line.split()
                 except ValueError:
-                    LOG.debug("PowerPCHardwareManager.get_memory: \'%s\' bad line",
-                              line)
+                    LOG.debug("%s: \'%s\' bad line", func, line)
                     raise
 
                 if memory.endswith('GiB'):
@@ -243,17 +246,14 @@ class PowerPCHardwareManager(hardware.HardwareManager):
                 elif memory.endswith('MiB'):
                      physical_mb += int(memory[0:-3])
                 else:
-                    LOG.warning("PowerPCHardwareManager.get_memory: %s bad memory",
-                                memory)
-                    LOG.warning("PowerPCHardwareManager.get_memory: line = \'%s\'",
-                                line)
+                    LOG.warning("%s: %s bad memory", func, memory)
+                    LOG.warning("%s: line = \'%s\'", func, line)
 
-            LOG.debug("PowerPCHardwareManager.get_memory: physical_mb = %s",
-                      physical_mb)
+            LOG.debug("%s: physical_mb = %s", func, physical_mb)
 
             return Memory(total=physical_mb, physical_mb=physical_mb)
         except (processutils.ProcessExecutionError, OSError) as e:
-            LOG.warning("Cannot execute lshw -c momeory -short -quiet: %s", e)
+            LOG.warning("%s: Cannot execute %s: %s", cmd, e)
 
         return None
 
@@ -275,12 +275,13 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         return out.strip()
 
     def get_system_vendor_info(self):
+        func = "PowerPCHardwareManager.get_system_vendor_info"
+        cmd = "lshw -quiet | egrep '^    (product|serial):'"
         product_name = None
         serial_number = None
         manufacturer = "IBM"
         try:
-            out, _ = utils.execute("lshw -quiet | egrep '^    (product|serial):'",
-                                   shell=True)
+            out, _ = utils.execute(cmd, shell=True)
         except (processutils.ProcessExecutionError, OSError) as e:
             LOG.warning("Cannot get system vendor information: %s", e)
         else:
@@ -293,18 +294,22 @@ class PowerPCHardwareManager(hardware.HardwareManager):
                 elif line_arr[0].strip() == 'serial':
                     serial_number = line_arr[1].strip()
 
-        LOG.debug ("PowerPCHardwareManager.get_system_vendor_info: product_name = %s", product_name)
-        LOG.debug ("PowerPCHardwareManager.get_system_vendor_info: serial_number = %s", serial_number)
-        LOG.debug ("PowerPCHardwareManager.get_system_vendor_info: manufacturer = %s", manufacturer)
+        LOG.debug ("%s: product_name = %s", func, product_name)
+        LOG.debug ("%s: serial_number = %s", func, serial_number)
+        LOG.debug ("%s: manufacturer = %s", func, manufacturer)
 
         return SystemVendorInfo(product_name=product_name,
                                 serial_number=serial_number,
                                 manufacturer=manufacturer)
 
     def get_boot_info(self):
+        func = "PowerPCHardwareManager.get_boot_info"
+
         boot_mode = 'uefi' if os.path.isdir('/sys/firmware/efi') else 'bios'
-        LOG.debug("PowerPCHardwareManager.get_boot_info: The current boot mode is %s", boot_mode)
+        LOG.debug("%s: The current boot mode is %s", func, boot_mode)
+
         pxe_interface = utils.get_agent_params().get('BOOTIF')
+
         return BootInfo(current_boot_mode=boot_mode,
                         pxe_interface=pxe_interface)
 
