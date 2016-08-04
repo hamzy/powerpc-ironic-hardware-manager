@@ -53,7 +53,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         """
         hardware_info = {}
 #       hardware_info['interfaces'] = self.list_network_interfaces()
-#       hardware_info['cpu'] = self.get_cpus()
+        hardware_info['cpu'] = self.get_cpus()
 #       hardware_info['disks'] = self.list_block_devices()
         hardware_info['memory'] = self.get_memory()
 #       hardware_info['bmc_address'] = self.get_bmc_address()
@@ -61,6 +61,35 @@ class PowerPCHardwareManager(hardware.HardwareManager):
 #       hardware_info['boot'] = self.get_boot_info()
 #       return hardware_info
         return None
+
+    def get_cpus(self):
+        lines = utils.execute('lscpu')[0]
+        cpu_info = {k.strip().lower(): v.strip() for k, v in
+                    (line.split(':', 1)
+                     for line in lines.split('\n')
+                     if line.strip())}
+        # Current CPU frequency can be different from maximum one on modern
+        # processors
+        freq = cpu_info.get('cpu max mhz', cpu_info.get('cpu mhz'))
+
+        flags = []
+        out = utils.try_execute('grep', '-Em1', '^flags', '/proc/cpuinfo')
+        if out:
+            try:
+                # Example output (much longer for a real system):
+                # flags           : fpu vme de pse
+                flags = out[0].strip().split(':', 1)[1].strip().split()
+            except (IndexError, ValueError):
+                LOG.warning('Malformed CPU flags information: %s', out)
+        else:
+            LOG.warning('Failed to get CPU flags')
+
+        return CPU(model_name=cpu_info.get('model name'),
+                   frequency=freq,
+                   # this includes hyperthreading cores
+                   count=int(cpu_info.get('cpu(s)')),
+                   architecture=cpu_info.get('architecture'),
+                   flags=flags)
 
     def get_memory(self):
         try:
