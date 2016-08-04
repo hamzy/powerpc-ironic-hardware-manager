@@ -70,7 +70,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
                      if line.strip())}
         # Current CPU frequency can be different from maximum one on modern
         # processors
-        freq = cpu_info.get('cpu max mhz', cpu_info.get('cpu mhz'))
+        frequency = cpu_info.get('cpu max mhz', cpu_info.get('cpu mhz'))
 
         flags = []
         out = utils.try_execute('grep', '-Em1', '^flags', '/proc/cpuinfo')
@@ -84,12 +84,22 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         else:
             LOG.warning('Failed to get CPU flags')
 
-        return CPU(model_name=cpu_info.get('model name'),
-                   frequency=freq,
-                   # this includes hyperthreading cores
-                   count=int(cpu_info.get('cpu(s)')),
-                   architecture=cpu_info.get('architecture'),
-                   flags=flags)
+        model_name = cpu_info.get('model name')
+        count = int(cpu_info.get('cpu(s)'))
+        architecture = cpu_info.get('architecture')
+
+        LOG.debug("PowerPCHardwareManager.get_cpus: model_name = ", model_name)
+        LOG.debug("PowerPCHardwareManager.get_cpus: frequency = ", frequency)
+        LOG.debug("PowerPCHardwareManager.get_cpus: count = ", count)
+        LOG.debug("PowerPCHardwareManager.get_cpus: architecturecount = ", architecture)
+        LOG.debug("PowerPCHardwareManager.get_cpus: flags = ", flags)
+
+        return hardware.CPU(model_name=model_name,
+                            frequency=frequency,
+                            # this includes hyperthreading cores
+                            count=count,
+                            architecture=architecture,
+                            flags=flags)
 
     def get_memory(self):
         try:
