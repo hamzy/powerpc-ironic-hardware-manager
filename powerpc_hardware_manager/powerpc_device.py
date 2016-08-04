@@ -12,14 +12,113 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import pyudev
+import shlex
+
 from oslo_log import log
 
+from oslo_concurrency import processutils
+
+from ironic_python_agent import errors
 from ironic_python_agent import hardware
 from ironic_python_agent import utils
 
+from ironic_python_agent.hardware import BlockDevice
+from ironic_python_agent.hardware import CPU
 from ironic_python_agent.hardware import Memory
 
 LOG = log.getLogger()
+
+def _get_device_vendor(dev):
+    """Get the vendor name of a given device."""
+    try:
+        devname = os.path.basename(dev)
+        with open('/sys/class/block/%s/device/vendor' % devname, 'r') as f:
+            return f.read().strip()
+    except IOError:
+        LOG.warning("Can't find the device vendor for device %s", dev)
+
+def _udev_settle():
+    """Wait for the udev event queue to settle.
+
+    Wait for the udev event queue to settle to make sure all devices
+    are detected once the machine boots up.
+
+    """
+    try:
+        utils.execute('udevadm', 'settle')
+    except processutils.ProcessExecutionError as e:
+        LOG.warning('Something went wrong when waiting for udev '
+                    'to settle. Error: %s', e)
+        return
+
+def list_all_block_devices(block_type='disk'):
+    """List all physical block devices
+
+    The switches we use for lsblk: P for KEY="value" output, b for size output
+    in bytes, d to exclude dependent devices (like md or dm devices), i to
+    ensure ascii characters only, and o to specify the fields/columns we need.
+
+    Broken out as its own function to facilitate custom hardware managers that
+    don't need to subclass GenericHardwareManager.
+
+    :param block_type: Type of block device to find
+    :return: A list of BlockDevices
+    """
+    _udev_settle()
+
+    columns = ['KNAME', 'MODEL', 'SIZE', 'ROTA', 'TYPE']
+    report = utils.execute('lsblk', '-Pbdi', '-o{}'.format(','.join(columns)),
+                           check_exit_code=[0])[0]
+    lines = report.split('\n')
+    context = pyudev.Context()
+
+    devices = []
+    for line in lines:
+        device = {}
+        # Split into KEY=VAL pairs
+        vals = shlex.split(line)
+        for key, val in (v.split('=', 1) for v in vals):
+            device[key] = val.strip()
+        # Ignore block types not specified
+        if device.get('TYPE') != block_type:
+            LOG.debug(
+                "TYPE did not match. Wanted: {!r} but found: {!r}".format(
+                    block_type, line))
+            continue
+
+        # Ensure all required columns are at least present, even if blank
+        missing = set(columns) - set(device)
+        if missing:
+            raise errors.BlockDeviceError(
+                '%s must be returned by lsblk.' % ', '.join(sorted(missing)))
+
+        name = '/dev/' + device['KNAME']
+        try:
+            udev = pyudev.Device.from_device_file(context, name)
+        # pyudev started raising another error in 0.18
+        except (ValueError, EnvironmentError, pyudev.DeviceNotFoundError) as e:
+            LOG.warning("Device %(dev)s is inaccessible, skipping... "
+                        "Error: %(error)s", {'dev': name, 'error': e})
+            extra = {}
+        else:
+            # TODO(lucasagomes): Since lsblk only supports
+            # returning the short serial we are using
+            # ID_SERIAL_SHORT here to keep compatibility with the
+            # bash deploy ramdisk
+            extra = {key: udev.get('ID_%s' % udev_key) for key, udev_key in
+                     [('wwn', 'WWN'), ('serial', 'SERIAL_SHORT'),
+                      ('wwn_with_extension', 'WWN_WITH_EXTENSION'),
+                      ('wwn_vendor_extension', 'WWN_VENDOR_EXTENSION')]}
+
+        devices.append(hardware.BlockDevice(name=name,
+                                            model=device['MODEL'],
+                                            size=int(device['SIZE']),
+                                            rotational=bool(int(device['ROTA'])),
+                                            vendor=_get_device_vendor(device['KNAME']),
+                                            **extra))
+    return devices
 
 class PowerPCHardwareManager(hardware.HardwareManager):
     """ """
@@ -54,13 +153,12 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         hardware_info = {}
 #       hardware_info['interfaces'] = self.list_network_interfaces()
         hardware_info['cpu'] = self.get_cpus()
-#       hardware_info['disks'] = self.list_block_devices()
+        hardware_info['disks'] = self.list_block_devices()
         hardware_info['memory'] = self.get_memory()
 #       hardware_info['bmc_address'] = self.get_bmc_address()
 #       hardware_info['system_vendor'] = self.get_system_vendor_info()
 #       hardware_info['boot'] = self.get_boot_info()
-#       return hardware_info
-        return None
+        return hardware_info
 
     def get_cpus(self):
         lines = utils.execute('lscpu')[0]
@@ -100,6 +198,9 @@ class PowerPCHardwareManager(hardware.HardwareManager):
                             count=count,
                             architecture=architecture,
                             flags=flags)
+
+    def list_block_devices(self):
+        return list_all_block_devices()
 
     def get_memory(self):
         try:
