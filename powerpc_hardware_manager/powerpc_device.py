@@ -27,6 +27,7 @@ from ironic_python_agent import utils
 from ironic_python_agent.hardware import BlockDevice
 from ironic_python_agent.hardware import CPU
 from ironic_python_agent.hardware import Memory
+from ironic_python_agent.hardware import SystemVendorInfo
 
 LOG = log.getLogger()
 
