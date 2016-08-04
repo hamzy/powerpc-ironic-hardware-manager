@@ -15,6 +15,7 @@
 import os
 import pyudev
 import shlex
+import netifaces
 
 from oslo_log import log
 
@@ -28,6 +29,7 @@ from ironic_python_agent.hardware import BlockDevice
 from ironic_python_agent.hardware import BootInfo
 from ironic_python_agent.hardware import CPU
 from ironic_python_agent.hardware import Memory
+from ironic_python_agent.hardware import NetworkInterface
 from ironic_python_agent.hardware import SystemVendorInfo
 
 LOG = log.getLogger()
@@ -127,6 +129,9 @@ class PowerPCHardwareManager(hardware.HardwareManager):
     HARDWARE_MANAGER_NAME = "PowerPCHardwareManager"
     HARDWARE_MANAGER_VERSION = "1"
 
+    def __init__(self):
+        self.sys_path = '/sys'
+
     def evaluate_hardware_support(self):
         """Declare level of hardware support provided.
         Since this example covers a case of supporting a specific device,
@@ -153,14 +158,21 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         :return: a dictionary representing inventory
         """
         hardware_info = {}
-#       hardware_info['interfaces'] = self.list_network_interfaces()
+        hardware_info['interfaces'] = self.list_network_interfaces()
         hardware_info['cpu'] = self.get_cpus()
         hardware_info['disks'] = self.list_block_devices()
         hardware_info['memory'] = self.get_memory()
         hardware_info['bmc_address'] = self.get_bmc_address()
         hardware_info['system_vendor'] = self.get_system_vendor_info()
         hardware_info['boot'] = self.get_boot_info()
+
         return hardware_info
+
+    def list_network_interfaces(self):
+        iface_names = os.listdir('{0}/class/net'.format(self.sys_path))
+        iface_names = [name for name in iface_names if self._is_device(name)]
+
+        return [self._get_interface_info(name) for name in iface_names]
 
     def get_cpus(self):
         lines = utils.execute('lscpu')[0]
@@ -341,3 +353,40 @@ class PowerPCHardwareManager(hardware.HardwareManager):
             'name': self.HARDWARE_MANAGER_NAME,
             'version': self.HARDWARE_MANAGER_VERSION
         }
+
+    def get_ipv4_addr(self, interface_id):
+        try:
+            addrs = netifaces.ifaddresses(interface_id)
+            return addrs[netifaces.AF_INET][0]['addr']
+        except (ValueError, IndexError, KeyError):
+            # No default IPv4 address found
+            return None
+
+    def _is_device(self, interface_name):
+        device_path = '{0}/class/net/{1}/device'.format(self.sys_path,
+                                                        interface_name)
+        return os.path.exists(device_path)
+
+    def _get_interface_info(self, interface_name):
+        addr_path = '{0}/class/net/{1}/address'.format(self.sys_path,
+                                                       interface_name)
+        with open(addr_path) as addr_file:
+            mac_addr = addr_file.read().strip()
+
+        return NetworkInterface(
+            interface_name,
+            mac_addr,
+            ipv4_address=self.get_ipv4_addr(interface_name),
+            has_carrier=self._interface_has_carrier(interface_name),
+            lldp=None)
+
+    def _interface_has_carrier(self, interface_name):
+        path = '{0}/class/net/{1}/carrier'.format(self.sys_path,
+                                                  interface_name)
+        try:
+            with open(path, 'rt') as fp:
+                return fp.read().strip() == '1'
+        except EnvironmentError:
+            LOG.debug('No carrier information for interface %s',
+                      interface_name)
+            return False
