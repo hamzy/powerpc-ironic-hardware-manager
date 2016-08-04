@@ -220,7 +220,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
                 try:
                     # /0/5                           memory     8165MiB System memory
                     # /0/1                         memory     255GiB System memory
-                    (_, _, memory, _, _) = line[0].split()
+                    (_, _, memory, _, _) = line.split()
                 except ValueError:
                     LOG.debug("PowerPCHardwareManager.get_memory: \'%s\' bad line",
                               line)
