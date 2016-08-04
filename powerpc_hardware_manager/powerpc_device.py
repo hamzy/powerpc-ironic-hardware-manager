@@ -218,7 +218,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
 
                 # /0/5                           memory     8165MiB System memory
                 # /0/1                         memory     255GiB System memory
-                (_, _, memory, _, _) = lines[0].split()
+                (_, _, memory, _, _) = line[0].split()
 
                 if memory.endswith('GiB'):
                      physical_mb += int(memory[0:-3])*1024
