@@ -67,30 +67,28 @@ class PowerPCHardwareManager(hardware.HardwareManager):
             out, _ = utils.execute("lshw -c memory -short -quiet 2>/dev/null | grep -i 'system memory'",
                                    shell=True)
 
-            lines = out.split('\n')
+            physical_mb = 0
 
-            # We only expect one line back!
-            if len(lines) != 1:
-                LOG.warning("PowerPCHardwareManager.get_memory: lines = \'%s\'", lines)
-                return None
+            for line in out.split('\n'):
 
-            # /0/5                           memory     8165MiB System memory
-            # /0/1                         memory     255GiB System memory
-            (_, _, memory, _, _) = lines[0].split()
+                if len(line) == 0:
+                    continue
 
-            if memory.endswith('GiB'):
-                 physical_mb = int(memory[0:-3])*1024
-            elif memory.endswith('MiB'):
-                 physical_mb = int(memory[0:-3])
-            else:
-                physical_mb = 0
-                LOG.warning("PowerPCHardwareManager.get_memory: %s bad memory", memory)
-                LOG.warning("PowerPCHardwareManager.get_memory: lines = \'%s\'", lines)
+                # /0/5                           memory     8165MiB System memory
+                # /0/1                         memory     255GiB System memory
+                (_, _, memory, _, _) = lines[0].split()
 
-            if physical_mb > 0:
-                LOG.debug("PowerPCHardwareManager.get_memory: physical_mb = ", physical_mb)
+                if memory.endswith('GiB'):
+                     physical_mb += int(memory[0:-3])*1024
+                elif memory.endswith('MiB'):
+                     physical_mb += int(memory[0:-3])
+                else:
+                    LOG.warning("PowerPCHardwareManager.get_memory: %s bad memory", memory)
+                    LOG.warning("PowerPCHardwareManager.get_memory: line = \'%s\'", line)
 
-                return hardware.Memory(total=physical_mb, physical_mb=physical_mb)
+            LOG.debug("PowerPCHardwareManager.get_memory: physical_mb = ", physical_mb)
+
+            return hardware.Memory(total=physical_mb, physical_mb=physical_mb)
         except (processutils.ProcessExecutionError, OSError) as e:
             LOG.warning("Cannot execute lshw -c momeory -short -quiet: %s", e)
 
