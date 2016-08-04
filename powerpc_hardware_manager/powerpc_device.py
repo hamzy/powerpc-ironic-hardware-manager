@@ -155,7 +155,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         hardware_info['cpu'] = self.get_cpus()
         hardware_info['disks'] = self.list_block_devices()
         hardware_info['memory'] = self.get_memory()
-#       hardware_info['bmc_address'] = self.get_bmc_address()
+        hardware_info['bmc_address'] = self.get_bmc_address()
 #       hardware_info['system_vendor'] = self.get_system_vendor_info()
 #       hardware_info['boot'] = self.get_boot_info()
         return hardware_info
@@ -233,6 +233,23 @@ class PowerPCHardwareManager(hardware.HardwareManager):
             LOG.warning("Cannot execute lshw -c momeory -short -quiet: %s", e)
 
         return None
+
+    def get_bmc_address(self):
+        # These modules are rarely loaded automatically
+        utils.try_execute('modprobe', 'ipmi_msghandler')
+        utils.try_execute('modprobe', 'ipmi_devintf')
+        utils.try_execute('modprobe', 'ipmi_si')
+
+        try:
+            out, _ = utils.execute(
+                "ipmitool lan print | grep -e 'IP Address [^S]' "
+                "| awk '{ print $4 }'", shell=True)
+        except (processutils.ProcessExecutionError, OSError) as e:
+            # Not error, because it's normal in virtual environment
+            LOG.warning("Cannot get BMC address: %s", e)
+            return
+
+        return out.strip()
 
     def get_clean_steps(self, node, ports):
         """Get a list of clean steps with priority.
