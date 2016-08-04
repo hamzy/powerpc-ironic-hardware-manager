@@ -206,29 +206,38 @@ class PowerPCHardwareManager(hardware.HardwareManager):
 
     def get_memory(self):
         try:
-            out, _ = utils.execute("lshw -c memory -short -quiet 2>/dev/null | grep -i 'system memory'",
+            out, _ = utils.execute("lshw -c memory -short -quiet 2>/dev/null"
+                                   "|grep -i 'system memory'",
                                    shell=True)
 
             physical_mb = 0
 
             for line in out.split('\n'):
 
-                if len(line) == 0:
+                if len(line.strip ()) == 0:
                     continue
 
-                # /0/5                           memory     8165MiB System memory
-                # /0/1                         memory     255GiB System memory
-                (_, _, memory, _, _) = line[0].split()
+                try:
+                    # /0/5                           memory     8165MiB System memory
+                    # /0/1                         memory     255GiB System memory
+                    (_, _, memory, _, _) = line[0].split()
+                except ValueError:
+                    LOG.debug("PowerPCHardwareManager.get_memory: \'%s\' bad line",
+                              line)
+                    raise
 
                 if memory.endswith('GiB'):
                      physical_mb += int(memory[0:-3])*1024
                 elif memory.endswith('MiB'):
                      physical_mb += int(memory[0:-3])
                 else:
-                    LOG.warning("PowerPCHardwareManager.get_memory: %s bad memory", memory)
-                    LOG.warning("PowerPCHardwareManager.get_memory: line = \'%s\'", line)
+                    LOG.warning("PowerPCHardwareManager.get_memory: %s bad memory",
+                                memory)
+                    LOG.warning("PowerPCHardwareManager.get_memory: line = \'%s\'",
+                                line)
 
-            LOG.debug("PowerPCHardwareManager.get_memory: physical_mb = %s", physical_mb)
+            LOG.debug("PowerPCHardwareManager.get_memory: physical_mb = %s",
+                      physical_mb)
 
             return Memory(total=physical_mb, physical_mb=physical_mb)
         except (processutils.ProcessExecutionError, OSError) as e:
