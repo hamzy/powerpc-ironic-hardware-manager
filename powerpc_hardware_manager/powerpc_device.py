@@ -156,7 +156,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         hardware_info['disks'] = self.list_block_devices()
         hardware_info['memory'] = self.get_memory()
         hardware_info['bmc_address'] = self.get_bmc_address()
-#       hardware_info['system_vendor'] = self.get_system_vendor_info()
+        hardware_info['system_vendor'] = self.get_system_vendor_info()
 #       hardware_info['boot'] = self.get_boot_info()
         return hardware_info
 
@@ -250,6 +250,33 @@ class PowerPCHardwareManager(hardware.HardwareManager):
             return
 
         return out.strip()
+
+    def get_system_vendor_info(self):
+        product_name = None
+        serial_number = None
+        manufacturer = "IBM"
+        try:
+            out, _ = utils.execute("lshw -quiet | egrep '^    (product|serial):'",
+                                   shell=True)
+        except (processutils.ProcessExecutionError, OSError) as e:
+            LOG.warning("Cannot get system vendor information: %s", e)
+        else:
+            for line in out.split('\n'):
+                line_arr = line.split(':', 1)
+                if len(line_arr) != 2:
+                    continue
+                if line_arr[0].strip() == 'product':
+                    product_name = line_arr[1].strip()
+                elif line_arr[0].strip() == 'serial':
+                    serial_number = line_arr[1].strip()
+
+        LOG.debug ("PowerPCHardwareManager.get_system_vendor_info: product_name = ", product_name)
+        LOG.debug ("PowerPCHardwareManager.get_system_vendor_info: serial_number = ", serial_number)
+        LOG.debug ("PowerPCHardwareManager.get_system_vendor_info: manufacturer = ", manufacturer)
+
+        return SystemVendorInfo(product_name=product_name,
+                                serial_number=serial_number,
+                                manufacturer=manufacturer)
 
     def get_clean_steps(self, node, ports):
         """Get a list of clean steps with priority.
