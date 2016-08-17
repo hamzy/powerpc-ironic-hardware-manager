@@ -335,14 +335,16 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         LOG.debug("PowerPCHardwareManager.get_clean_steps:")
 
         return [{
-                 'step': 'upgrade_powerpc_firmware',
-                 'priority': 17,
+                 "step": "upgrade_powerpc_firmware",
+                 "priority": 17,
+                 # Should always be the deploy interface
+                 "interface": "deploy",
                  # If you need Ironic to coordinate a reboot after this step
                  # runs, but before continuing cleaning, this should be true.
-                 'reboot_requested': True,
+                 "reboot_requested": True,
                  # If it's safe for Ironic to abort cleaning while this step
                  # runs, this should be true.
-                 'abortable': False
+                 "abortable": False
                }]
 
     def get_version(self):
