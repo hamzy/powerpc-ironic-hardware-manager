@@ -419,7 +419,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         LOG.debug("%s: node = %s (%s)", func, node, type(node))
         LOG.debug("%s: ports = %s", func, ports)
 
-        if _is_latest_firmware(node, ports):
+        if self._is_latest_firmware(node, ports):
             LOG.debug('Latest firmware already flashed, skipping')
             # Return values are ignored here on success
             return True
@@ -427,7 +427,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
             LOG.debug('Firmware version X found, upgrading to Y')
             # Perform firmware upgrade.
             try:
-                _upgrade_firmware(node, ports)
+                self._upgrade_firmware(node, ports)
             except Exception as e:
                 # Log and pass through the exception so cleaning will fail
                 LOG.exception(e)
