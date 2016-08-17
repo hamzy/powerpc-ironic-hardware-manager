@@ -81,3 +81,28 @@ Create the disk image
 Creating a IPA boot image is as follows::
 
     ubuntu@hamzy-baby-utopic:~$ (disk-image-create -a ppc64el -u ubuntu ironic-agent dhcp-all-interfaces source-repositories -o ~/ci-images/ipa-hm-ppc64el 2>&1 | tee output.dib; sudo chown -R ubuntu:ubuntu ~/ci-images/ipa-hm-ppc64el*)
+
+
+Debugging
+---------
+
+If there is a syntax error, you will see it in the output of /opt/stack/logs/screen-ir-cond.log::
+
+    2016-08-17 14:55:23.432 1949 ERROR stevedore.extension [-] Could not load 'powerpc_device': invalid syntax (powerpc_device.py, line 338)
+
+However, it is easier to test your code for syntax errors in a virtual environment.  You can do this as follows::
+
+    ubuntu@hamzy-baby-utopic:~$ (rm -rf test-stevedore/; mkdir test-stevedore; cd test-stevedore/; virtualenv --no-site-packages --distribute venv; source venv/bin/activate; pip install -U stevedore; pip install -U oslo.log; pip install -U ironic_python_agent; cd ~/powerpc-hardware-manager/; python setup.py install; python)
+    >>> import logging
+    >>> console = logging.StreamHandler()
+    >>> console.setLevel(logging.DEBUG)
+    >>> logging.getLogger('').addHandler(console)
+    >>> from powerpc_hardware_manager import powerpc_device
+    >>> obj = powerpc_device.PowerPCHardwareManager()
+    >>> print obj.get_cpus()
+    Failed to get CPU flags
+    <ironic_python_agent.hardware.CPU object at 0x3fff8e790c50>
+    >>> import stevedore
+    >>> extension_manager = stevedore.ExtensionManager(namespace='ironic_python_agent.hardware_managers', invoke_on_load=True)
+    >>> [ n.name for n in extension_manager.extensions ]
+    ['powerpc_device', 'generic']
