@@ -334,7 +334,16 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         """
         LOG.debug("PowerPCHardwareManager.get_clean_steps:")
 
-        return []
+        return [
+                 'step': 'upgrade_powerpc_firmware',
+                 'priority': 17,
+                 # If you need Ironic to coordinate a reboot after this step
+                 # runs, but before continuing cleaning, this should be true.
+                 'reboot_requested': True,
+                 # If it's safe for Ironic to abort cleaning while this step
+                 # runs, this should be true.
+                 'abortable': False
+               ]
 
     def get_version(self):
         """Get a name and version for this hardware manager.
@@ -395,3 +404,40 @@ class PowerPCHardwareManager(hardware.HardwareManager):
             LOG.debug('No carrier information for interface %s',
                       interface_name)
             return False
+
+    def upgrade_powerpc_firmware (self, node, ports):
+        """Upgrade firmware on a PowerPC computer"""
+        # Any commands needed to perform the firmware upgrade should go here.
+        # If you plan on actually flashing firmware every cleaning cycle, you
+        # should ensure your device will not experience flash exhaustion. A
+        # good practice in some environments would be to check the firmware
+        # version against a constant in the code, and noop the method if an
+        # upgrade is not needed.
+        func = "PowerPCHardwareManager.upgrade_powerpc_firmware"
+        LOG.debug("%s: node = %s (%s)", func, node, type(node))
+        LOG.debug("%s: ports = %s", func, ports)
+
+        if _is_latest_firmware(node, ports):
+            LOG.debug('Latest firmware already flashed, skipping')
+            # Return values are ignored here on success
+            return True
+        else:
+            LOG.debug('Firmware version X found, upgrading to Y')
+            # Perform firmware upgrade.
+            try:
+                _upgrade_firmware(node, ports)
+            except Exception as e:
+                # Log and pass through the exception so cleaning will fail
+                LOG.exception(e)
+                raise
+        return True
+
+    def _is_latest_firmware(self, node, ports):
+        """Detect if device is running latest firmware."""
+        # Actually detect the firmware version instead of returning here.
+        return True
+
+    def _upgrade_firmware(self, node, ports):
+        """Upgrade firmware on device."""
+        # Actually perform firmware upgrade instead of returning here.
+        return True
