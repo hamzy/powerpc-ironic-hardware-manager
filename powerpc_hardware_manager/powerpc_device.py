@@ -416,8 +416,13 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         # version against a constant in the code, and noop the method if an
         # upgrade is not needed.
         func = "PowerPCHardwareManager.upgrade_powerpc_firmware"
-        LOG.debug("%s: node = %s (%s)", func, node, type(node))
+        LOG.debug("MARKMARK")
+        LOG.debug("%s: node = %s", func, type(node))
+        LOG.debug("%s: node = %s", func, node)
         LOG.debug("%s: ports = %s", func, ports)
+        import time
+        time.sleep(5)
+        LOG.debug("MARKMARK")
 
         if self._is_latest_firmware(node, ports):
             LOG.debug('Latest firmware already flashed, skipping')
