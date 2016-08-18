@@ -416,13 +416,8 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         # version against a constant in the code, and noop the method if an
         # upgrade is not needed.
         func = "PowerPCHardwareManager.upgrade_powerpc_firmware"
-        LOG.debug("MARKMARK")
-        LOG.debug("%s: node = %s", func, type(node))
         LOG.debug("%s: node = %s", func, node)
         LOG.debug("%s: ports = %s", func, ports)
-        import time
-        time.sleep(5)
-        LOG.debug("MARKMARK")
 
         if self._is_latest_firmware(node, ports):
             LOG.debug('Latest firmware already flashed, skipping')
@@ -441,6 +436,48 @@ class PowerPCHardwareManager(hardware.HardwareManager):
 
     def _is_latest_firmware(self, node, ports):
         """Detect if device is running latest firmware."""
+        func = "PowerPCHardwareManager._is_latest_firmware"
+        ipmi_username = node["driver_info"]["ipmi_username"]
+        ipmi_address = node["driver_info"]["ipmi_address"]
+        ipmi_password = node["driver_info"]["ipmi_password"]
+
+        version = None
+
+        try:
+            cmd = ("sudo ipmitool "
+                   "-I lanplus "
+                   "-H %s "
+                   "-U %s "
+                   "-P %s "
+                   "fru") % (ipmi_address,
+                             ipmi_username,
+                             ipmi_password, )
+
+            out, _ = utils.execute(cmd, shell=True)
+
+            fInSection = False
+
+            for line in out.split('\n'):
+
+                if len(line.strip ()) == 0:
+                    fInSection = False
+                    continue
+
+                if line.find("FRU Device Description : System Firmware") > -1:
+                    fInSection = True
+                    continue
+
+                if not fInSection:
+                    continue
+
+                if line.find("Product Version") > -1:
+                    version = line.split(':')[1].strip()
+
+        except (processutils.ProcessExecutionError, OSError) as e:
+            LOG.warning("%s: Cannot execute %s: %s", cmd, e)
+
+        LOG.debug("%s: version = %s", func, version)
+
         # Actually detect the firmware version instead of returning here.
         return True
 
