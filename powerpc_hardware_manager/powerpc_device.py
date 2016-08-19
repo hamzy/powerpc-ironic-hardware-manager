@@ -464,6 +464,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
                     continue
 
                 if line.find("FRU Device Description : System Firmware") > -1:
+                    LOG.debug("%s: Found System Firmware section", func)
                     fInSection = True
                     continue
 
@@ -478,10 +479,6 @@ class PowerPCHardwareManager(hardware.HardwareManager):
 
         LOG.debug("%s: version = %s", func, version)
 
-        LOG.debug("MARKMARK")
-        import time
-        time.sleep (30)
-
         # Actually detect the firmware version instead of returning here.
         return True
 
@@ -489,3 +486,10 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         """Upgrade firmware on device."""
         # Actually perform firmware upgrade instead of returning here.
         return True
+
+    def _MarkMark(self):
+        # Ironic powers off the computer before the entire debug log has
+        # been flushed out. Hack that here. :(
+        LOG.debug("MARKMARK")
+        import time
+        time.sleep (30)
