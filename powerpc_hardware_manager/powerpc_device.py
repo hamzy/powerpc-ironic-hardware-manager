@@ -255,7 +255,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
 
             return Memory(total=physical_mb, physical_mb=physical_mb)
         except (processutils.ProcessExecutionError, OSError) as e:
-            LOG.warning("%s: Cannot execute %s: %s", cmd, e)
+            LOG.warning("%s: Cannot execute %s: %s", func, cmd, e)
 
         return None
 
@@ -480,7 +480,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
                     version = line.split(':')[1].strip()
 
         except (processutils.ProcessExecutionError, OSError) as e:
-            LOG.warning("%s: Cannot execute %s: %s", cmd, e)
+            LOG.warning("%s: Cannot execute %s: %s", func, cmd, e)
 
         LOG.debug("%s: version = %s", func, version)
 
@@ -517,7 +517,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
             return True
 
         except (processutils.ProcessExecutionError, OSError) as e:
-            LOG.warning("%s: Cannot execute %s: %s", cmd, e)
+            LOG.warning("%s: Cannot execute %s: %s", func, cmd, e)
 
             return False
 
