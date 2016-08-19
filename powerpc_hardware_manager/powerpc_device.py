@@ -128,6 +128,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
     """ """
     HARDWARE_MANAGER_NAME = "PowerPCHardwareManager"
     HARDWARE_MANAGER_VERSION = "1"
+    SYSTEM_FIRMWARE_VERSION = "IBM-habanero-ibm-OP8_v1.7_1.62"
 
     def __init__(self):
         self.sys_path = '/sys'
@@ -479,8 +480,13 @@ class PowerPCHardwareManager(hardware.HardwareManager):
 
         LOG.debug("%s: version = %s", func, version)
 
-        # Actually detect the firmware version instead of returning here.
-        return True
+        if version is None:
+            return False
+        # http://stackoverflow.com/a/29247821/5839258
+        elif version.upper().lower() == SYSTEM_FIRMWARE_VERSION.upper().lower():
+            return True
+        else:
+            return False
 
     def _upgrade_firmware_ipmi(self, node, ports):
         """Upgrade firmware on device."""
