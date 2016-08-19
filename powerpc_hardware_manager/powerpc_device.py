@@ -423,6 +423,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
 
         if self._is_latest_firmware_ipmi(node, ports):
             LOG.debug('Latest firmware already flashed, skipping')
+            self._MarkMark()
             # Return values are ignored here on success
             return True
         else:
@@ -433,7 +434,9 @@ class PowerPCHardwareManager(hardware.HardwareManager):
             except Exception as e:
                 # Log and pass through the exception so cleaning will fail
                 LOG.exception(e)
+                self._MarkMark()
                 raise
+        self._MarkMark()
         return True
 
     def _is_latest_firmware_ipmi(self, node, ports):
