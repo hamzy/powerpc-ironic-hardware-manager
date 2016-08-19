@@ -129,6 +129,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
     HARDWARE_MANAGER_NAME = "PowerPCHardwareManager"
     HARDWARE_MANAGER_VERSION = "1"
     SYSTEM_FIRMWARE_VERSION = "IBM-habanero-ibm-OP8_v1.7_1.62"
+    SYSTEM_FIRMWARE_FILE = "/root/8348_810.1603.20160310b_update.hpm"
 
     def __init__(self):
         self.sys_path = '/sys'
@@ -483,7 +484,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         if version is None:
             return False
         # http://stackoverflow.com/a/29247821/5839258
-        elif version.upper().lower() == SYSTEM_FIRMWARE_VERSION.upper().lower():
+        elif version.upper().lower() == self.SYSTEM_FIRMWARE_VERSION.upper().lower():
             return True
         else:
             return False
@@ -491,8 +492,28 @@ class PowerPCHardwareManager(hardware.HardwareManager):
     def _upgrade_firmware_ipmi(self, node, ports):
         """Upgrade firmware on device."""
         func = "PowerPCHardwareManager._upgrade_firmware_ipmi"
-        # Actually perform firmware upgrade instead of returning here.
-        return True
+
+        try:
+            cmd = ("sudo ipmitool "
+                   "-I lanplus "
+                   "-H %s "
+                   "-U %s "
+                   "-P %s "
+                   "-z 30000 "
+                   "hpm upgrade %s "
+                   "force") % (ipmi_address,
+                             ipmi_username,
+                             ipmi_password,
+                             self.SYSTEM_FIRMWARE_FILE)
+
+            out, _ = utils.execute(cmd, shell=True)
+
+            return True
+
+        except (processutils.ProcessExecutionError, OSError) as e:
+            LOG.warning("%s: Cannot execute %s: %s", cmd, e)
+
+            return False
 
     def _MarkMark(self):
         # Ironic powers off the computer before the entire debug log has
