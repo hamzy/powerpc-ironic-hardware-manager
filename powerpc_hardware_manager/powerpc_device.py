@@ -419,7 +419,7 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         LOG.debug("%s: node = %s", func, node)
         LOG.debug("%s: ports = %s", func, ports)
 
-        if self._is_latest_firmware(node, ports):
+        if self._is_latest_firmware_ipmi(node, ports):
             LOG.debug('Latest firmware already flashed, skipping')
             # Return values are ignored here on success
             return True
@@ -427,16 +427,16 @@ class PowerPCHardwareManager(hardware.HardwareManager):
             LOG.debug('Firmware version X found, upgrading to Y')
             # Perform firmware upgrade.
             try:
-                self._upgrade_firmware(node, ports)
+                self._upgrade_firmware_ipmi(node, ports)
             except Exception as e:
                 # Log and pass through the exception so cleaning will fail
                 LOG.exception(e)
                 raise
         return True
 
-    def _is_latest_firmware(self, node, ports):
+    def _is_latest_firmware_ipmi(self, node, ports):
         """Detect if device is running latest firmware."""
-        func = "PowerPCHardwareManager._is_latest_firmware"
+        func = "PowerPCHardwareManager._is_latest_firmware_ipmi"
         ipmi_username = node["driver_info"]["ipmi_username"]
         ipmi_address = node["driver_info"]["ipmi_address"]
         ipmi_password = node["driver_info"]["ipmi_password"]
@@ -482,8 +482,9 @@ class PowerPCHardwareManager(hardware.HardwareManager):
         # Actually detect the firmware version instead of returning here.
         return True
 
-    def _upgrade_firmware(self, node, ports):
+    def _upgrade_firmware_ipmi(self, node, ports):
         """Upgrade firmware on device."""
+        func = "PowerPCHardwareManager._upgrade_firmware_ipmi"
         # Actually perform firmware upgrade instead of returning here.
         return True
 
