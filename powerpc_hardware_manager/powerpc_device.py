@@ -492,6 +492,9 @@ class PowerPCHardwareManager(hardware.HardwareManager):
     def _upgrade_firmware_ipmi(self, node, ports):
         """Upgrade firmware on device."""
         func = "PowerPCHardwareManager._upgrade_firmware_ipmi"
+        ipmi_username = node["driver_info"]["ipmi_username"]
+        ipmi_address = node["driver_info"]["ipmi_address"]
+        ipmi_password = node["driver_info"]["ipmi_password"]
 
         try:
             cmd = ("sudo ipmitool "
