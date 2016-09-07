@@ -72,12 +72,17 @@ if __name__ == "__main__":
 
         # At this point, we have:
         # {u'fru_type': u'DIMM', u'fault': u'False', u'is_fru': 1, u'version': u'', u'present': u'True'}
+        # or:
+        # {u'Version': u'0x0000', u'Name': u'0x0b', u'Custom Field 8': u'', u'Custom Field 7': u'', u'Asset Tag': u'', u'Custom Field 5': u'', u'Custom Field 4': u'', u'Custom Field 3': u'', u'Custom Field 2': u'', u'Custom Field 1': u'', u'is_fru': 1, u'fru_type': u'DIMM', u'FRU File ID': u'', u'Serial Number': u'0x02bb58a7', u'Model Number': u'M393B2G70DB0-YK0  ', u'version': u'', u'Custom Field 6': u'', u'fault': u'False', u'present': u'True', u'Manufacturer': u'0xce80'}
 
         # We don't care about non-physical hardware
         if value["present"] == "False":
             continue
         # We don't care about faulty hardware
         if value["fault"] == "True":
+            continue
+        # We need a model number
+        if not value.has_key("Model Number"):
             continue
 
         print key
