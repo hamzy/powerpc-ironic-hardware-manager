@@ -361,22 +361,17 @@ def show_memory(session, parser, args, subparsers = None):
 #@command
 def _old_get_boot_progress(session, parser, args, subparsers = None):
     if subparsers is not None:
-        parser_get_boot_process = subparsers.add_parser("get_boot_progress")
-        parser_get_boot_process.set_defaults(func=_old_get_boot_progress)
+        parser_get_boot_progress = subparsers.add_parser("get_boot_progress")
+        parser_get_boot_progress.set_defaults(func=_old_get_boot_progress)
         return
 
     path = "org/openbmc/sensors/host/BootProgress"
     url = "https://%s/%s" % (args.hostname, path, )
+    if args.verbose:
+        print "GET %s" % (url, )
     response = session.get (url,
                             verify=False,
                             headers=JSON_HEADERS)
-    if args.verbose:
-        print "GET %s" % (url, )
-    response = session.post (url,
-                            verify=False,
-                            data=jdata,
-                            headers=JSON_HEADERS)
-
     if response.status_code != 200:
         err_str = ("Error: Response code to system enumerate is not 200!"
                    " (%d)" % (response.status_code, ))
@@ -396,8 +391,8 @@ def _old_get_boot_progress(session, parser, args, subparsers = None):
 @command
 def get_boot_progress(session, parser, args, subparsers = None):
     if subparsers is not None:
-        parser_get_boot_process = subparsers.add_parser("get_boot_progress")
-        parser_get_boot_process.set_defaults(func=get_boot_progress)
+        parser_get_boot_progress = subparsers.add_parser("get_boot_progress")
+        parser_get_boot_progress.set_defaults(func=get_boot_progress)
         return
 
     path = "org/openbmc/sensors/host/BootProgress/action/getValue"
